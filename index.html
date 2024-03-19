@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camera Capabilities</title>
+</head>
+<body>
+  <h1>Camera Capabilities</h1>
+  <ul id="cameraList"></ul>
+
+  <script>
+    // Function to get camera capabilities
+    async function getCameraCapabilities() {
+      const cameraList = document.getElementById('cameraList');
+
+      try {
+        // Check if the browser supports navigator.mediaDevices
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+          // Enumerate all media devices
+          const devices = await navigator.mediaDevices.enumerateDevices();
+
+          // Filter video devices (cameras)
+          const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+          // Print details of each camera
+          videoDevices.forEach(async device => {
+            const listItem = document.createElement('li');
+
+            listItem.textContent = `Camera ID: ${device.deviceId}, Label: ${device.label}`;
+
+            try {
+              const capabilities = await navigator.mediaDevices.getSupportedConstraints(device.kind);
+              listItem.textContent += `, Capabilities: ${JSON.stringify(capabilities)}`;
+            } catch (err) {
+              console.error('Error getting capabilities: ', err);
+            }
+
+            cameraList.appendChild(listItem);
+          });
+        } else {
+          console.error('navigator.mediaDevices.enumerateDevices not supported');
+        }
+      } catch (err) {
+        console.error('Error enumerating devices: ', err);
+      }
+    }
+
+    // Call the function when the document is loaded
+    document.addEventListener('DOMContentLoaded', getCameraCapabilities);
+  </script>
+</body>
+</html>
