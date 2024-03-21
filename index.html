@@ -1,53 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Camera Capabilities</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Capabilities</title>
 </head>
+
 <body>
-  <h1>Camera Capabilities</h1>
-  <ul id="cameraList"></ul>
+    <h1>Device Information & Camera Capabilities</h1>
+    <p id="deviceInfo"></p>
+    <p id="cameraName"></p>
+    <strong><p id="cameraStatus"></p></strong>
+    <p>Click the button below to check your camera's capabilities.</p>
+    <button id="checkCapabilitiesBtn">Check Camera Capabilities</button>
+     <p id="capabilities"></p>
 
-  <script>
-    // Function to get camera capabilities
-    async function getCameraCapabilities() {
-      const cameraList = document.getElementById('cameraList');
 
-      try {
-        // Check if the browser supports navigator.mediaDevices
-        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
-          // Enumerate all media devices
-          const devices = await navigator.mediaDevices.enumerateDevices();
-
-          // Filter video devices (cameras)
-          const videoDevices = devices.filter(device => device.kind === 'videoinput');
-
-          // Print details of each camera
-          videoDevices.forEach(async device => {
-            const listItem = document.createElement('li');
-
-            listItem.textContent = `Camera ID: ${device.deviceId}, Label: ${device.label}`;
-
+    <script>
+        document.getElementById('checkCapabilitiesBtn').addEventListener('click', async () => {
             try {
-              const capabilities = await navigator.mediaDevices.getSupportedConstraints(device.kind);
-              listItem.textContent += `, Capabilities: ${JSON.stringify(capabilities)}`;
-            } catch (err) {
-              console.error('Error getting capabilities: ', err);
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const track = stream.getVideoTracks()[0];
+                const capabilities = track.getCapabilities();
+                const capabilitiesString = JSON.stringify(capabilities, null, 2);
+                document.getElementById('capabilities').innerText = capabilitiesString;
+
+                // Check if the device is Windows, Mac, or Ubuntu and aspect ratio is within the specified range
+                const deviceType = detectDevice();
+                const isRealCamera = checkRealCamera(capabilities);
+                if (isRealCamera) {
+                    document.getElementById('cameraStatus').innerText = "Real Camera";
+                } else {
+                    document.getElementById('cameraStatus').innerText = "This may not be a real camera.";
+                }
+
+                // Get the name of the camera device
+                const cameraName = track.label;
+                document.getElementById('cameraName').innerText = `Camera Name: ${cameraName}`;
+
+                stream.getTracks().forEach(track => track.stop());
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                document.getElementById('capabilities').innerText = 'Error accessing camera. Please check your permissions.';
+            }
+        });
+
+        // Function to detect device type
+        function detectDevice() {
+            const userAgent = navigator.userAgent;
+            let deviceInfo = '';
+
+            if (userAgent.match(/Macintosh/i)) {
+                deviceInfo = 'Mac';
+            } else if (userAgent.match(/Windows/i)) {
+                deviceInfo = 'Windows';
+            } else if (userAgent.match(/Ubuntu/i)) {
+                deviceInfo = 'Ubuntu';
+            } else {
+                deviceInfo = 'Unknown';
             }
 
-            cameraList.appendChild(listItem);
-          });
-        } else {
-          console.error('navigator.mediaDevices.enumerateDevices not supported');
+            document.getElementById('deviceInfo').innerText = `Device Type: ${deviceInfo}`;
+            return deviceInfo;
         }
-      } catch (err) {
-        console.error('Error enumerating devices: ', err);
-      }
-    }
 
-    // Call the function when the document is loaded
-    document.addEventListener('DOMContentLoaded', getCameraCapabilities);
-  </script>
+        // Function to check if it's a real camera based on aspect ratio
+        function checkRealCamera(capabilities) {
+            const aspectRatio = capabilities.aspectRatio;
+            const maxAspectRatio = aspectRatio.max;
+            const minAspectRatio = aspectRatio.min;
+
+            if ((maxAspectRatio === 1280) && (minAspectRatio === 0.001388888888888889)) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+    </script>
 </body>
+
 </html>
